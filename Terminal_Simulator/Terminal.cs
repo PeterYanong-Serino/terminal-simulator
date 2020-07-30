@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.IO;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
@@ -43,8 +44,7 @@ namespace Terminal_Simulator {
                     Console.WriteLine("IP Address: " + _ipAddress);
                     Console.Write("Port: ");
                 }
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 Console.WriteLine(ex.Message);
             }
         }
@@ -73,12 +73,10 @@ namespace Terminal_Simulator {
                     if (!thRetryConn.IsAlive) {
                         thRetryConn.Start();
                     }
-                }
-                else {
+                } else {
                     throw new Exception("Unexpected error occured during terminal connection process.");
                 }
-            }
-            catch (SocketException sEx) {
+            } catch (SocketException sEx) {
                 if (sEx.ErrorCode == 10061) {
                     Thread.Sleep(2000);
 
@@ -91,9 +89,8 @@ namespace Terminal_Simulator {
                     _stream = null;
                     ConnectToServer();
                 }
-            }
-            catch (Exception ex) {
-                    Console.WriteLine(ex.Message);
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
             }
         }
 
@@ -154,9 +151,49 @@ namespace Terminal_Simulator {
                                 _stream.WriteAsync(response, 0, response.Length);
                             }
                         }
-                    }
-                    catch (Exception ex) {
+                    } catch (Exception ex) {
                         log(ex.Message);
+                    }
+                }
+            }
+        }
+
+        public void PayAtTable() {
+            while (true) {
+                if (_stream != null && _tcpClient != null && _tcpClient.GetState() == TcpState.Established) {
+                    try {
+                        var readFile = File.ReadAllLinesAsync("patt.txt");
+                        readFile.Wait();
+
+                        if (readFile.Status == TaskStatus.RanToCompletion) {
+                            foreach (string item in readFile.Result) {
+                                var sep = item.Split('|');
+                                string request = sep[0];
+                                string requestName = sep[1];
+
+                                var buildRequest = CalculateHeader(StringToByteArray(request)) + request;
+                                byte[] actualRequest = StringToByteArray(buildRequest);
+                                log(string.Format("Sent: {0} | {1}", request, requestName));
+                                _stream.WriteAsync(actualRequest, 0, actualRequest.Length);
+
+                                byte[] headerBuffer = new byte[2];
+                                int dataLength = Task.Run(() => HeaderLength(headerBuffer)).Result;
+
+                                while (dataLength <= 0) {
+                                    if (dataLength > 0) {
+                                        byte[] buffer = new byte[dataLength];
+                                        _stream.ReadAsync(buffer, 0, buffer.Length).Wait();
+                                        Thread.Sleep(new Random().Next(3, 5) * 1000);
+
+                                        string received = ByteArrayToString(buffer);
+                                        log("Received: " + received);
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                    } catch (Exception e) {
+                        log(e.Message);
                     }
                 }
             }
