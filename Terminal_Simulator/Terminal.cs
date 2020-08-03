@@ -1,5 +1,4 @@
 ﻿using System;
-using System.ComponentModel;
 using System.IO;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -30,7 +29,7 @@ namespace Terminal_Simulator {
             thRetryConn = new Thread(RetryConnectToServer);
         }
 
-        public TcpClient client { get { return _tcpClient; } }
+        public TcpClient client => _tcpClient;
 
         public void GetDetails() {
             try {
@@ -166,7 +165,11 @@ namespace Terminal_Simulator {
                         readFile.Wait();
 
                         if (readFile.Status == TaskStatus.RanToCompletion) {
+                            Thread.Sleep(new Random().Next(3, 5) * 1000);
+
+                            int c = 0;
                             foreach (string item in readFile.Result) {
+                                c++;
                                 var sep = item.Split('|');
                                 string request = sep[0];
                                 string requestName = sep[1];
@@ -177,20 +180,21 @@ namespace Terminal_Simulator {
                                 _stream.WriteAsync(actualRequest, 0, actualRequest.Length);
 
                                 byte[] headerBuffer = new byte[2];
+                                _stream.ReadAsync(headerBuffer, 0, 2).Wait();
                                 int dataLength = Task.Run(() => HeaderLength(headerBuffer)).Result;
 
-                                while (dataLength <= 0) {
-                                    if (dataLength > 0) {
-                                        byte[] buffer = new byte[dataLength];
-                                        _stream.ReadAsync(buffer, 0, buffer.Length).Wait();
-                                        Thread.Sleep(new Random().Next(3, 5) * 1000);
+                                if (dataLength > 0) {
+                                    byte[] buffer = new byte[dataLength];
+                                    _stream.ReadAsync(buffer, 0, buffer.Length).Wait();
 
-                                        string received = ByteArrayToString(buffer);
-                                        log("Received: " + received);
-                                    }
+                                    string received = ByteArrayToString(buffer);
+                                    log("Received: " + received);
                                 }
                             }
-                            break;
+
+                            if (c == readFile.Result.Length) {
+                                break;
+                            }
                         }
                     } catch (Exception e) {
                         log(e.Message);

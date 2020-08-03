@@ -7,12 +7,17 @@ namespace Terminal_Simulator {
 
         static void Main(string[] args) {
             Thread thConn;
+            bool payAtTable = false;
 
             terminal = new Terminal();
             terminal.GetDetails();
 
             Utilities.log("Enable Pay@Table feature? 1 = Yes, 0 = No");
-            bool payAtTable = Convert.ToBoolean(Console.Read());
+
+            int isEnablePATT = Console.Read();
+            if (isEnablePATT > 0) {
+                payAtTable = true;
+            }
 
             thConn = new Thread(terminal.ConnectToServer);
             thConn.Start();
