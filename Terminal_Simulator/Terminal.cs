@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -174,10 +175,17 @@ namespace Terminal_Simulator {
                                 string request = sep[0];
                                 string requestName = sep[1];
 
+                                Thread.Sleep(new Random().Next(3, 5) * 1000);
+
                                 var buildRequest = CalculateHeader(StringToByteArray(request)) + request;
-                                byte[] actualRequest = StringToByteArray(buildRequest);
+                                List<byte> actualRequest = new List<byte>(StringToByteArray(buildRequest));
+
+                                if (actualRequest.Count > 128) {
+                                    actualRequest.RemoveAt(1);
+                                }
+
                                 log(string.Format("Sent: {0} | {1}", request, requestName));
-                                _stream.WriteAsync(actualRequest, 0, actualRequest.Length);
+                                _stream.WriteAsync(actualRequest.ToArray(), 0, actualRequest.ToArray().Length);
 
                                 byte[] headerBuffer = new byte[2];
                                 _stream.ReadAsync(headerBuffer, 0, 2).Wait();

@@ -35,6 +35,10 @@ namespace Terminal_Simulator {
         }
 
         public static byte[] StringToByteArray(string data) {
+            if (data.Length > 128) {
+                return System.Text.Encoding.Default.GetBytes(data);
+            }
+
             return System.Text.Encoding.ASCII.GetBytes(data);
         }
     }
